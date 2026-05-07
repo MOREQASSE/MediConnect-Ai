@@ -1,0 +1,27 @@
+🚀 The MediConnect Activation Sequence
+Tab 1: The SDN "Brain" (OpenDaylight)
+cd /odl-carbon/bin
+./karaf
+
+Tab 2: The Infrastructure (Mininet)
+
+Once the controller is ready, create the virtual hospital network.
+
+sudo mn --controller=remote,ip=127.0.0.1,port=6633 --switch=ovsk,protocols=OpenFlow13 --topo=single,3 --mac
+then run the command : pingall
+
+Tab 3: The AI Logic & Dashboard (Python)
+
+Now activate your environment and launch the web interface.
+
+cd ~/MediConnect_Project
+source venv/bin/activate
+python3 dashboard.py
+
+Tab 4: The Connectivity Audit (Curl)
+
+Use this anytime to verify that the "Visual Spectrum" data is flowing correctly.
+
+curl -u admin:admin http://localhost:8181/rests/data/opendaylight-inventory:nodes
+To verify inside the mininet: sh ovs-ofctl -O OpenFlow13 dump-flows s1
+What you should see : cookie=0x0, duration=124.071s, table=0, n_packets=0, n_bytes=0, priority=65000,in_port="s1-eth2" actions=NORMAL
