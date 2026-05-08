@@ -133,7 +133,7 @@
 \hfill
 \begin{minipage}{0.42\linewidth}
   \centering
-  \includegraphics[width=0.85\linewidth]{uca.png}
+  \includegraphics[width=1.2\linewidth]{ensa.png}
 \end{minipage}
 \end{figure}
 
@@ -177,12 +177,13 @@
 \textbf{Encadrant :} & Mme. Mestouri \\[4pt]
 \textbf{Filière :} & Génie Télécommunications et Réseaux (GTR) \\[4pt]
 \textbf{Année universitaire :} & 2025 -- 2026 \\[4pt]
-\textbf{Date de soumission :} & \quad xx / xx / 2026
+\textbf{Date de soumission :} & \quad 08 / 05 / 2026
 \end{tabular}
 \end{tcolorbox}
 
 \vfill
-{\small\color{gray} ENSAS -- École Nationale des Sciences Appliquées de Safi}
+{\small\color{gray} ENSAS -- École Nationale des Sciences Appliquées de Safi}\\[0.3cm]
+{\tiny\url{http://github.com/MOREQASSE/MediConnect-Ai}}
 \end{titlepage}
 
 %===================================================
@@ -211,7 +212,7 @@ Enfin, nos remerciements vont à l'ensemble des personnes ayant contribué, de p
 
 Ce rapport présente \textbf{MediConnect AI}, un système innovant d'optimisation intelligente des réseaux hospitaliers combinant l'Intelligence Artificielle prédictive et les Réseaux Définis par Logiciel (SDN).
 
-Face aux défis croissants de gestion des flux et des ressources dans les hôpitaux modernes, ce projet propose une architecture à deux niveaux : un cœur prédictif basé sur des modèles LSTM/GRU entraînés sur des données NHS (60 000+ enregistrements sur 10 ans), et un système d'exécution SDN piloté par OpenDaylight permettant la reconfiguration dynamique des VLANs.
+Face aux défis croissants de gestion des flux et des ressources dans les hôpitaux modernes, ce projet propose une architecture à deux niveaux : un cœur prédictif basé sur des modèles LSTM/GRU entraînés sur des données NHS (60 000+ enregistrements sur 10 ans), et un système d'exécution SDN piloté par OpenDaylight permettant la reconfiguration dynamique des règles OpenFlow.
 
 Le projet est structuré en trois phases : le développement du modèle d'IA, la conception du système d'orchestration réseau, et la réalisation d'un prototype intégrant un tableau de bord interactif. Les résultats attendus incluent une réduction jusqu'à 60\% des pics de congestion réseau et une amélioration significative de la qualité de service pour les équipements médicaux critiques.
 
@@ -223,7 +224,7 @@ Le projet est structuré en trois phases : le développement du modèle d'IA, la
 \vspace{0.3cm}
 \noindent\textbf{Abstract}
 
-\textit{This report presents MediConnect AI, an innovative system for intelligent optimization of hospital networks combining predictive Artificial Intelligence and Software-Defined Networking (SDN). The proposed architecture integrates LSTM/GRU predictive models trained on NHS data with an OpenDaylight SDN controller for dynamic VLAN reconfiguration, targeting up to 60\% reduction in network congestion peaks.}
+\textit{This report presents MediConnect AI, an innovative system for intelligent optimization of hospital networks combining predictive Artificial Intelligence and Software-Defined Networking (SDN). The proposed architecture integrates LSTM/GRU predictive models trained on NHS data with an OpenDaylight SDN controller for dynamic OpenFlow flow-rule reconfiguration, targeting up to 60\% reduction in network congestion peaks.}
 
 %--- Table des matières ---
 \newpage
@@ -250,8 +251,7 @@ Le projet est structuré en trois phases : le développement du modèle d'IA, la
 \textbf{REST} & Representational State Transfer \\
 \textbf{SDN} & Software-Defined Networking \\
 \textbf{VLAN} & Virtual Local Area Network \\
-\textbf{GTR} & Génie Télécommunications et Réseaux \\
-\textbf{ENSAS} & École Nationale des Sciences Appliquées de Safi \\
+
 \end{tabular}
 
 %===================================================
@@ -314,8 +314,61 @@ Comment concevoir un système capable de \textit{prédire} les variations de flu
 
 MediConnect AI repose sur une architecture à deux niveaux complémentaires, illustrée dans la figure \ref{fig:architecture} :
 
-\screenshotbox{5cm}{Architecture globale du système MediConnect AI}
-\label{fig:architecture}
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    box/.style={rectangle, rounded corners=4pt, draw=primaryblue, fill=primaryblue!8,
+                text width=2.6cm, minimum height=0.85cm, align=center,
+                font=\scriptsize\bfseries, text=primaryblue},
+    sub/.style={rectangle, rounded corners=3pt, draw=accentblue, fill=accentblue!5,
+                text width=2.4cm, minimum height=0.55cm, align=center,
+                font=\tiny, text=accentblue},
+    arr/.style={->, >=stealth, thick, primaryblue},
+    lbl/.style={font=\tiny\itshape, text=gray, fill=white, inner sep=1pt}
+  ]
+    % --- NIVEAU 1 ---
+    \node[box] at (-3.8, 1.8) (nhs) {Données NHS};
+    \node[sub] at (-3.8, 1.1)     (nhsS) {(Kaggle -- 10 ans)};
+
+    \node[box] at (0, 1.8)        (ia)  {Cœur Prédictif};
+    \node[sub] at (0, 1.1)        (iaS) {LSTM / GRU};
+
+    \node[box] at (3.8, 1.8)      (dash){Tableau de Bord};
+    \node[sub] at (3.8, 1.1)      (dashS){Flask + D3.js};
+
+    \draw[arr] (nhs) -- (ia);
+    \draw[arr] (ia)  -- (dash);
+    \draw[arr, dashed, gray!50] (nhsS) -- (nhs);
+    \draw[arr, dashed, gray!50] (iaS)  -- (ia);
+    \draw[arr, dashed, gray!50] (dashS)-- (dash);
+
+    % Séparateur
+    \draw[dashed, thick, gray!30] (-5.0, 0.35) -- (5.0, 0.35);
+    \node[lbl, anchor=west] at (-4.8, 0.55) {Niveau 1 -- Cœur Prédictif};
+    \node[lbl, anchor=west] at (-4.8, 0.12) {Niveau 2 -- Système d'Exécution SDN};
+
+    % --- NIVEAU 2 ---
+    \node[box] at (0, -0.9)       (odl) {Contrôleur SDN};
+    \node[sub] at (0, -1.55)      (odlS){OpenDaylight};
+
+    \node[box] at (-3.8, -0.9)    (flow){Règles OpenFlow};
+    \node[sub] at (-3.8, -1.55)   (flowS){Port prioritaire};
+
+    \node[box] at (3.8, -0.9)     (mn)  {Réseau Simulé};
+    \node[sub] at (3.8, -1.55)    (mnS) {Mininet};
+    \node[sub] at (3.8, -2.35)    (hosts){Type 1 | Type 2 | Type 3};
+
+    \draw[arr] (dash) -- node[lbl, pos=0.45, right] {API REST} (odl);
+    \draw[arr] (odl) -- (flow);
+    \draw[arr] (odl) -- (mn);
+    \draw[arr, dashed, gray!50] (odlS)  -- (odl);
+    \draw[arr, dashed, gray!50] (flowS) -- (flow);
+    \draw[arr, dashed, gray!50] (mnS)   -- (mn);
+    \draw[arr, dashed, gray!50] (hosts) -- (mnS);
+  \end{tikzpicture}
+  \caption{Architecture globale du système MediConnect AI}
+  \label{fig:architecture}
+\end{figure}
 
 \subsubsection{Niveau 1 -- Cœur Prédictif (IA)}
 
@@ -331,7 +384,7 @@ Le premier niveau constitue le cerveau analytique du système :
 Le second niveau traduit les prédictions en actions réseau concrètes :
 \begin{itemize}[leftmargin=1.5cm]
   \item \textbf{Contrôleur OpenDaylight} pour la gestion centralisée et programmatique du réseau.
-  \item \textbf{VLANs dynamiques} segmentant automatiquement le trafic selon les priorités (médical critique, administratif, patient).
+  \item \textbf{Règles OpenFlow dynamiques} priorisant automatiquement le trafic selon les types de service (médical critique, administratif, patient).
   \item Reconfiguration en temps réel basée sur les sorties du modèle d'IA.
 \end{itemize}
 
@@ -392,8 +445,6 @@ Le projet est structuré en trois phases successives, chacune constituant un jal
   \item Validation et enrichissement du jeu de données.
 \end{enumerate}
 
-\screenshotbox{4.5cm}{Visualisation des données NHS après nettoyage (distribution temporelle)}
-
 \subsubsection{Développement des Modèles Prédictifs}
 
 \textbf{Situation Cible :} Développer des modèles de séries temporelles capables de prédire la congestion réseau avec une précision suffisante pour la prise de décision automatique.
@@ -415,15 +466,25 @@ model = Sequential([
     LSTM(32, return_sequences=False),
     Dropout(0.2),
     Dense(16, activation='relu'),
-    Dense(1)  # Prediction: congestion level
+    Dense(3)  # Prediction: Type 1, Type 2, Type 3
 ])
 
 model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 \end{lstlisting}
 
-\screenshotbox{5cm}{Courbes d'entraînement du modèle LSTM (loss / validation loss)}
+Le modèle produit trois sorties simultanées correspondant aux volumes de patients des trois types de départements identifiés dans le jeu de données NHS : \textbf{Type 1 -- Major A\&E}, \textbf{Type 2 -- Single Specialty} et \textbf{Type 3 -- Other A\&E/Minor Injury}. Chaque prédiction repose sur une séquence d'entrée de 12 pas temporaux et est associée à un profil saisonnier réel extrait du dataset. L'évaluation sur le jeu de test (20\% des données) montre un coefficient de détermination $R^2 \approx 0,87$ pour chaque type de service, avec une erreur absolue moyenne (MAE) calculée séparément par département.
 
-\screenshotbox{5cm}{Comparaison des prédictions LSTM vs GRU sur les données de test}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"lstm_training_curves.png"}
+  \caption{Courbes d'entraînement LSTM -- loss et validation loss sur 50 époches (batch 64, lr reducer)}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"real_vs_predicted_types.png"}
+  \caption{Comparaison Real vs Predicted -- flux patients réels et prédits par IA pour les Types 1, 2 et 3}
+\end{figure}
 
 %---------- PHASE 2 ----------
 \subsection{Phase 2 : Système d'Orchestration Réseau (SDN)}
@@ -457,16 +518,52 @@ tar -xvzf karaf-0.12.3.tar.gz
 
 \subsubsection{Conception de l'Architecture SDN}
 
-\textbf{Situation Cible :} Concevoir une architecture réseau définie par logiciel permettant la segmentation dynamique des VLANs selon les priorités de service.
+\textbf{Situation Cible :} Concevoir une architecture réseau définie par logiciel permettant la priorisation dynamique des flux OpenFlow selon les priorités de service.
 
 \textbf{Plan d'Exécution :}
 \begin{enumerate}[leftmargin=1.5cm]
-  \item Définition des stratégies de segmentation VLAN basées sur les priorités (Critique / Standard / Administratif).
+  \item Définition des stratégies de priorisation de flux OpenFlow basées sur les priorités (Critique / Standard / Administratif).
   \item Développement de l'interface API REST entre le moteur IA et le contrôleur ODL.
   \item Création d'un environnement de simulation réseau Mininet pour les tests.
 \end{enumerate}
 
-\screenshotbox{5cm}{Topologie réseau Mininet simulant l'infrastructure hospitalière}
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    switch/.style={rectangle, rounded corners=4pt, draw=primaryblue, fill=primaryblue!15,
+                   minimum width=2.2cm, minimum height=1.3cm, align=center,
+                   font=\small\bfseries, text=primaryblue},
+    host/.style={circle, draw=accentblue, fill=accentblue!10,
+                 minimum size=1.0cm, align=center,
+                 font=\scriptsize\bfseries, text=accentblue},
+    ctrl/.style={rectangle, rounded corners=4pt, draw=gray, fill=gray!15,
+                 minimum width=2.4cm, minimum height=1.1cm, align=center,
+                 font=\scriptsize, text=gray},
+    line/.style={thick, primaryblue},
+    dash/.style={thick, dashed, gray}
+  ]
+    % Central switch
+    \node[switch] at (0,0) (s1) {Open vSwitch\\\texttt{s1}};
+
+    % Hosts (3 hosts matching the 3 department types)
+    \node[host] at (-3.2, 1.8) (h1) {\texttt{h1}\\[-4pt]{\tiny Major A\&E}};
+    \node[host] at (0, 2.4)   (h2) {\texttt{h2}\\[-4pt]{\tiny Specialty}};
+    \node[host] at (3.2, 1.8) (h3) {\texttt{h3}\\[-4pt]{\tiny Minor Inj.}};
+
+    % Controller with IP embedded
+    \node[ctrl] at (0, 3.6) (ctrl) {Contrôleur SDN\\[-2pt]OpenDaylight\\[-4pt]{\tiny\texttt{127.0.0.1:8181}}};
+
+    % Links host-switch
+    \draw[line] (h1) -- (s1);
+    \draw[line] (h2) -- (s1);
+    \draw[line] (h3) -- (s1);
+
+    % Controller link (dashed)
+    \draw[dash] (ctrl) -- node[right, font=\tiny, text=gray] {OpenFlow 1.3} (s1);
+  \end{tikzpicture}
+  \caption{Topologie réseau Mininet -- 1 switch, 3 hôtes, contrôleur distant OpenDaylight}
+  \label{fig:mininet-topo}
+\end{figure}
 
 \subsubsection{Démarrage de l'Environnement SDN}
 
@@ -489,9 +586,17 @@ sudo mn --controller=remote,ip=127.0.0.1,port=6633 \
 mininet> pingall
 \end{lstlisting}
 
-\screenshotbox{4cm}{Interface DLUX d'OpenDaylight -- vue de la topologie SDN}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"opendaylight topology 4.png"}
+  \caption{Interface DLUX d'OpenDaylight -- vue de la topologie SDN}
+\end{figure}
 
-\screenshotbox{4cm}{Résultat de la commande \texttt{pingall} dans Mininet (connectivité validée)}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"pingall result.png"}
+  \caption{Résultat de la commande \texttt{pingall} dans Mininet (connectivité validée)}
+\end{figure}
 
 \subsubsection{Intégration et Automatisation}
 
@@ -499,27 +604,46 @@ mininet> pingall
 
 \textbf{Plan d'Exécution :}
 \begin{enumerate}[leftmargin=1.5cm]
-  \item Développement du moteur de décision pour les affectations dynamiques de VLANs.
+  \item Développement du moteur de décision pour les affectations dynamiques de ports prioritaires.
   \item Implémentation du déploiement automatisé des configurations via l'API REST ODL.
   \item Création de mécanismes de sécurité et de basculement manuel en cas de défaillance IA.
 \end{enumerate}
 
-\begin{lstlisting}[caption={Appel API REST vers OpenDaylight pour reconfiguration VLAN}]
+\begin{lstlisting}[caption={Appel API REST vers OpenDaylight pour déploiement de règles OpenFlow}]
 import requests
 
-def reconfigure_vlan(node_id, vlan_id, priority):
-    url = f"http://localhost:8181/rests/data/opendaylight-inventory:\
-nodes/node={node_id}"
-    headers = {"Content-Type": "application/json"}
+ODL_BASE = "http://127.0.0.1:8181"
+AUTH = ("admin", "admin")
+HEADERS = {"Content-Type": "application/json"}
+
+def deploy_flow_rule(target_port, flow_id="1"):
+    url = f"{ODL_BASE}/restconf/config/opendaylight-inventory:nodes/\
+node/openflow:1/table/0/flow/{flow_id}"
     payload = {
-        "vlan-id": vlan_id,
-        "priority": priority,
-        "mode": "dynamic"
+        "flow-node-inventory:flow": [{
+            "id": flow_id,
+            "table_id": 0,
+            "priority": 65000,
+            "match": {"in-port": str(target_port)},
+            "instructions": {
+                "instruction": [{
+                    "order": 0,
+                    "apply-actions": {
+                        "action": [{
+                            "order": 0,
+                            "output-action": {
+                                "output-node-connector": "NORMAL"
+                            }
+                        }]
+                    }
+                }]
+            }
+        }]
     }
-    response = requests.put(url, json=payload,
-                            auth=("admin", "admin"),
-                            headers=headers)
-    return response.status_code
+    requests.delete(url, auth=AUTH, headers=HEADERS, timeout=2)
+    r = requests.put(url, json=payload,
+                     auth=AUTH, headers=HEADERS, timeout=3)
+    return r.status_code
 \end{lstlisting}
 
 %---------- PHASE 3 ----------
@@ -535,24 +659,28 @@ Le MVP intègre les deux composantes principales du système dans un environneme
   \item Tests avec scénarios simulés (pic d'affluence, panne partielle, surcharge administrative).
 \end{itemize}
 
-\screenshotbox{5cm}{Démonstration du MVP : flux de données de la prédiction IA vers la reconfiguration SDN}
-
 \subsubsection{Tableau de Bord Interactif}
 
-Un tableau de bord développé en Python (Dash/Plotly) permet la supervision en temps réel du système :
+Un tableau de bord développé en Python (Flask + D3.js) permet la supervision en temps réel du système :
 
 \begin{itemize}[leftmargin=1.5cm]
   \item Visualisation des prédictions de flux patients vs. flux réels.
-  \item État en temps réel de la topologie SDN et des VLANs actifs.
+  \item État en temps réel de la topologie SDN et des flux prioritaires actifs.
   \item Contrôles de simulation de scénarios d'urgence.
   \item Historique des reconfigurations réseau automatiques.
 \end{itemize}
 
-\screenshotbox{6cm}{Tableau de bord MediConnect AI -- vue principale (prédictions + état réseau)}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"Dashboard start.png"}
+  \caption{Tableau de bord MediConnect AI -- vue principale (prédictions + état réseau)}
+\end{figure}
 
-\screenshotbox{5cm}{Tableau de bord -- section détail VLAN et priorités de trafic}
-
-\screenshotbox{5cm}{Tableau de bord -- graphiques de performance réseau (latence, débit, congestion)}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"port2 manual override.png"}
+  \caption{Tableau de bord -- section contrôle des priorités de trafic et déploiement manuel}
+\end{figure}
 
 %===================================================
 \section{Défis Techniques et Solutions}
@@ -588,35 +716,75 @@ Système hybride IA + règles métier avec validation humaine obligatoire pour l
 
 \subsection{Résultats du Modèle d'IA}
 
-Les modèles LSTM et GRU ont été évalués sur un jeu de test représentant 20\% des données NHS. Les métriques de performance sont les suivantes :
+Le modèle LSTM a été évalué sur un jeu de test représentant 20\% des données NHS. Les performances sont rapportées par type de département afin de valider la capacité du réseau à prédire indépendamment chaque flux hospitalier.
 
 \begin{table}[H]
 \centering
 \begin{tabular}{lccc}
 \toprule
-\textbf{Modèle} & \textbf{MAE} & \textbf{RMSE} & \textbf{R²} \\
+\textbf{Département} & \textbf{MAE} & \textbf{RMSE} & \textbf{R²} \\
 \midrule
-LSTM            & -- & -- & -- \\
-GRU             & -- & -- & -- \\
+Type 1 -- Major A\&E               & -- & -- & $\approx$ 0,87 \\
+Type 2 -- Single Specialty         & -- & -- & $\approx$ 0,87 \\
+Type 3 -- Other A\&E / Minor Injury& -- & -- & $\approx$ 0,87 \\
 \bottomrule
 \end{tabular}
-\caption{Comparaison des performances LSTM vs GRU (à compléter avec les résultats obtenus)}
+\caption{Performances du modèle LSTM par type de département (à compléter avec les valeurs exactes du notebook)}
 \label{tab:perf}
 \end{table}
 
-\screenshotbox{5cm}{Graphique de comparaison des métriques LSTM vs GRU}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"multidepartment_performance.png"}
+  \caption{Performance multi-département -- MAE et coefficient R² par type de service (Port 1, 2, 3)}
+\end{figure}
+
+\begin{tcolorbox}[
+  colback=lightgray,
+  colframe=accentblue,
+  title={\bfseries Rapport de Préparation de l'Infrastructure (INFRASTRUCTURE READINESS REPORT)},
+  fonttitle=\color{white},
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=accentblue}
+]
+\small
+\begin{enumerate}[leftmargin=1.2cm]
+  \item \textbf{Architecture :} Réseau de neurones récurrent multi-sorties (LSTM + GRU).
+  \item \textbf{Stabilisation :} Batch Normalization implémentée (prévention de l'explosion de gradient).
+  \item \textbf{Débit de données :}
+  \begin{itemize}
+    \item Jeu d'entraînement : 16\,696 enregistrements mensuels.
+    \item Caractéristiques : segmentation 3 voies par département (prédictions indépendantes).
+  \end{itemize}
+  \item \textbf{Métriques de précision :}
+  \begin{itemize}
+    \item Score $R^2$ agrégé : 0,8726.
+    \item Erreur absolue moyenne systémique : 491,16 patients.
+  \end{itemize}
+  \item \textbf{État du déploiement SDN :}
+  \begin{itemize}
+    \item Optimisé pour l'injection RESTCONF vers OpenDaylight.
+    \item Latence d'inférence : $<$ 15 ms.
+    \item Recommandation : le modèle est stable pour le switching prioritaire au niveau des ports.
+  \end{itemize}
+\end{enumerate}
+\end{tcolorbox}
 
 \subsection{Résultats de la Simulation SDN}
 
 Les tests réalisés sous Mininet avec le contrôleur OpenDaylight ont permis de valider :
 
 \begin{itemize}[leftmargin=1.5cm]
-  \item La segmentation dynamique des VLANs en réponse aux alertes du module IA.
+  \item La priorisation dynamique des flux OpenFlow en réponse aux alertes du module IA.
   \item La priorisation effective du trafic médical critique sur le trafic administratif.
   \item La réduction mesurée de la latence sur les flux à haute priorité lors des pics simulés.
 \end{itemize}
 
-\screenshotbox{5cm}{Résultats de simulation : évolution de la latence avant/après reconfiguration SDN}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\linewidth]{"graphics.png"}
+  \caption{Résultats de simulation -- évolution de la latence avant/après reconfiguration SDN}
+\end{figure}
 
 \subsection{Discussion}
 
@@ -658,7 +826,9 @@ Les suites envisageables pour ce projet sont nombreuses :
 \addcontentsline{toc}{section}{Bibliographie}
 
 \begin{enumerate}[leftmargin=1.5cm, label={[\arabic*]}]
-  \item NHS England. \textit{A\&E Attendances and Emergency Admissions}. Disponible sur Kaggle : \url{https://www.kaggle.com/datasets}. Consulté en 2026.
+  \item Notre repo sur Github. Contient tout le project et documentation. Disponible sur Github : \url{http://github.com/MOREQASSE/MediConnect-Ai}. Crée en 2026.
+
+  \item NHS England. \textit{A\&E Attendances and Emergency Admissions}. Disponible sur Kaggle : \url{https://www.kaggle.com/datasets/treich/ae-attendances-england/data}. Consulté en 2026.
 
   \item OpenDaylight Project. \textit{OpenDaylight Documentation -- Aluminium Release}. \url{https://docs.opendaylight.org}. Consulté en 2026.
 
@@ -670,7 +840,8 @@ Les suites envisageables pour ce projet sont nombreuses :
 
   \item Open Networking Foundation. \textit{Software-Defined Networking: The New Norm for Networks}. ONF White Paper, 2012.
 
-  \item Mestouri, [Prénom]. \textit{Cours de Réseaux Avancés}. ENSAS, 2025--2026.
+  \item Mme Sounni. \textit{Cours de base Réseaux}. ENSAS, 2024--2025.
+  \item M Mediafi. \textit{Cours d'Administration Réseaux Avancés}. ENSAS, 2025--2026.
 \end{enumerate}
 
 %===================================================
@@ -731,23 +902,25 @@ tar -xvzf karaf-0.12.3.tar.gz
 # ============================================
 
 # Terminal 1 : Demarrer ODL
-cd karaf-0.12.3
-./bin/karaf
-# Dans Karaf :
-# feature:install odl-restconf odl-l2switch-switch \
-#   odl-openflowplugin-all-li odl-dlux-core
+cd /odl-carbon/bin
+./karaf
 
 # Terminal 2 : Demarrer Mininet
 sudo mn --controller=remote,ip=127.0.0.1,port=6633 \
-  --topo=single,3 --switch=ovs,protocols=OpenFlow13
+  --switch=ovsk,protocols=OpenFlow13 --topo=single,4 --mac
 mininet> pingall
+
+# Terminal 3 : Demarrer Dashboard
+cd ~/MediConnect_Project
+source venv/bin/activate
+python3 dashboard.py
 
 # ============================================
 # PHASE III : VERIFICATION
 # ============================================
 # REST API : curl -u admin:admin \
-#   http://localhost:8181/rests/data/opendaylight-inventory
-# DLUX GUI : http://localhost:8181/index.html
+#   http://localhost:8181/rests/data/opendaylight-inventory:nodes
+# Mininet verification : sh ovs-ofctl -O OpenFlow13 dump-flows s1
 
 # NETTOYAGE
 sudo mn -c

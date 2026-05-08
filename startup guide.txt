@@ -7,7 +7,7 @@ Tab 2: The Infrastructure (Mininet)
 
 Once the controller is ready, create the virtual hospital network.
 
-sudo mn --controller=remote,ip=127.0.0.1,port=6633 --switch=ovsk,protocols=OpenFlow13 --topo=single,3 --mac
+sudo mn --controller=remote,ip=127.0.0.1,port=6633 --switch=ovsk,protocols=OpenFlow13 --topo=single,4 --mac
 then run the command : pingall
 
 Tab 3: The AI Logic & Dashboard (Python)
