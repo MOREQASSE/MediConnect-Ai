@@ -384,6 +384,14 @@ HTML_TEMPLATE = """
         .action-btn.stop:hover { box-shadow: 0 0 40px rgba(255,42,42,.4); }
         .action-btn.stop.visible { display: block; }
 
+        .action-btn.restore {
+            background: var(--neon-cyan); color: black;
+            box-shadow: 0 0 20px rgba(0,242,255,.2);
+            display: none;
+        }
+        .action-btn.restore:hover { box-shadow: 0 0 40px rgba(0,242,255,.4); }
+        .action-btn.restore.visible { display: block; }
+
         .link       { stroke: #2a2d35; stroke-width: 2; }
         .link.active-flow {
             stroke: var(--neon-green); stroke-width: 4;
@@ -461,19 +469,19 @@ HTML_TEMPLATE = """
 
         <!-- Stat cards -->
         <div class="stats-row">
-            <div id="card-type1" class="stat-card">
+            <div id="card-type1" class="stat-card" onclick="setManualOverride('type1')" style="cursor: pointer;" title="Click for Manual Override">
                 <div class="priority-badge">SDN PRIORITIZED</div>
                 <div class="lbl">Major A&amp;E (Type 1)</div>
                 <div id="val-type1" class="val">0</div>
                 <div class="lbl">Port 1</div>
             </div>
-            <div id="card-type2" class="stat-card">
+            <div id="card-type2" class="stat-card" onclick="setManualOverride('type2')" style="cursor: pointer;" title="Click for Manual Override">
                 <div class="priority-badge">SDN PRIORITIZED</div>
                 <div class="lbl">Specialty (Type 2)</div>
                 <div id="val-type2" class="val">0</div>
                 <div class="lbl">Port 2</div>
             </div>
-            <div id="card-type3" class="stat-card">
+            <div id="card-type3" class="stat-card" onclick="setManualOverride('type3')" style="cursor: pointer;" title="Click for Manual Override">
                 <div class="priority-badge">SDN PRIORITIZED</div>
                 <div class="lbl">Minor Inj (Type 3)</div>
                 <div id="val-type3" class="val">0</div>
@@ -514,8 +522,9 @@ HTML_TEMPLATE = """
 
         <!-- Buttons -->
         <div class="action-row">
-            <button class="action-btn" onclick="pushSDN()">Deploy AI Flow Rules to ODL</button>
+            <button class="action-btn" onclick="pushSDN()">Deploy Flow Rules to ODL</button>
             <button class="action-btn stop" id="stop-btn" onclick="stopPolling()">Stop Audit</button>
+            <button class="action-btn restore" id="ai-restore-btn" onclick="resetAIControl()">Restore AI Control</button>
         </div>
     </div>
 </div>
@@ -523,7 +532,37 @@ HTML_TEMPLATE = """
 <script>
     // State
     let currentPriority = '';
+    let aiPredictedPriority = '';
+    let isManualOverride = false;
     let packetPollTimer = null;
+
+    function updatePriorityUI(priority) {
+        ['type1','type2','type3'].forEach(id => {
+            document.getElementById('card-'+id)
+                .classList.toggle('active-priority', priority === id);
+        });
+
+        if (currentPriority !== priority) {
+            currentPriority = priority;
+            drawViz(currentPriority);
+        }
+    }
+
+    function setManualOverride(priority) {
+        isManualOverride = true;
+        updatePriorityUI(priority);
+        document.getElementById('ai-restore-btn').classList.add('visible');
+        log(`[MANUAL OVERRIDE] Priority set to ${priority.toUpperCase()}`);
+    }
+
+    function resetAIControl() {
+        isManualOverride = false;
+        document.getElementById('ai-restore-btn').classList.remove('visible');
+        log('[AI CONTROL] Restored control to AI model.');
+        if (aiPredictedPriority) {
+            updatePriorityUI(aiPredictedPriority);
+        }
+    }
     const consoleEl = document.getElementById('odl-console');
     const MAX_LOG_LINES = 50;
     let debounceTimer;
@@ -679,14 +718,10 @@ HTML_TEMPLATE = """
             document.getElementById('val-type2').innerText = data.rooms.type2.toLocaleString();
             document.getElementById('val-type3').innerText = data.rooms.type3.toLocaleString();
 
-            ['type1','type2','type3'].forEach(id => {
-                document.getElementById('card-'+id)
-                    .classList.toggle('active-priority', data.priority === id);
-            });
+            aiPredictedPriority = data.priority;
 
-            if (currentPriority !== data.priority) {
-                currentPriority = data.priority;
-                drawViz(currentPriority);
+            if (!isManualOverride) {
+                updatePriorityUI(aiPredictedPriority);
             }
 
             if (data.history) drawHistoryChart(data.history);
@@ -695,8 +730,8 @@ HTML_TEMPLATE = """
 
     // Deploy + start packet polling
     async function pushSDN() {
-        if (!currentPriority) { log('[WARN] No AI prediction yet. Move the sliders first.'); return; }
-        log(`[SIGNAL] AI Predicted Surge -> ${currentPriority.toUpperCase()}`);
+        if (!currentPriority) { log('[WARN] No priority set yet.'); return; }
+        log(`[SIGNAL] ${isManualOverride ? 'Manual Override' : 'AI Predicted Surge'} -> ${currentPriority.toUpperCase()}`);
         log('[ODL] Sending flow rule to controller...');
 
         try {
