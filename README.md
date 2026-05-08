@@ -1,12 +1,27 @@
 # MediConnect AI
 
-![Logo](Screenshots/logo4.png)
+<p align="center">
+  <img src="Screenshots/logo4.png" width="200" alt="Logo" />
+</p>
+
+![Dashboard start](Screenshots/Dashboard%20start.png)
 
 **Système d'Optimisation Intelligente pour les Réseaux des Hôpitaux**  
 Mini Projet - 4ème Année GTR  
 École Nationale des Sciences Appliquées de Safi (ENSAS)
 
 ---
+
+## 🛠️ Stack Technique
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white" alt="TensorFlow" />
+  <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
+  <img src="https://img.shields.io/badge/OpenDaylight-005C9E?style=for-the-badge&logo=eclipse&logoColor=white" alt="OpenDaylight" />
+  <img src="https://img.shields.io/badge/Mininet-555555?style=for-the-badge" alt="Mininet" />
+  <img src="https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3.js&logoColor=white" alt="D3.js" />
+</p>
 
 ## 📋 Description
 
@@ -158,16 +173,16 @@ Le tableau de bord offre :
 ## 🖼️ Screenshots
 
 ### Architecture Globale
-![Architecture](rapport.tex#fig:architecture)
+> **Note** : *L'image de l'architecture est en cours de conception (actuellement sous forme d'espace réservé TikZ dans le rapport LaTeX).*
 
 ### Tableau de Bord
-![Dashboard](Screenshots/Dashboard start.png)
+![Dashboard](Screenshots/Dashboard%20start.png)
 
-### Topologie Mininet
-![Mininet Topology](rapport.tex#fig:mininet-topo)
+### Topologie Mininet (Pingall Test)
+![Mininet Topology](Screenshots/pingall%20result.png)
 
 ### OpenDaylight
-![OpenDaylight DLUX](Screenshots/opendaylight topology 4.png)
+![OpenDaylight DLUX](Screenshots/opendaylight%20topology%204.png)
 
 ---
 
@@ -199,7 +214,16 @@ Modifiable : `app.run(host='0.0.0.0', port=5000)`
 
 ## 👥 Équipe
 
-- **Membres** : Mohammed Reqasse, Souhayl Ramdani, Ibrahim Laamech
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><a href="https://github.com/MohammedReqasse"><img src="https://ui-avatars.com/api/?name=Mohammed+Reqasse&background=00467F&color=fff&rounded=true&bold=true&size=100" alt="Mohammed Reqasse"/><br /><b>Mohammed Reqasse</b></a></td>
+      <td align="center"><a href="https://github.com/SouhaylRamdani"><img src="https://ui-avatars.com/api/?name=Souhayl+Ramdani&background=00467F&color=fff&rounded=true&bold=true&size=100" alt="Souhayl Ramdani"/><br /><b>Souhayl Ramdani</b></a></td>
+      <td align="center"><a href="https://github.com/IbrahimLaamech"><img src="https://ui-avatars.com/api/?name=Ibrahim+Laamech&background=00467F&color=fff&rounded=true&bold=true&size=100" alt="Ibrahim Laamech"/><br /><b>Ibrahim Laamech</b></a></td>
+    </tr>
+  </table>
+</div>
+
 - **Encadrante** : Mme. Mestouri
 - **Filière** : Génie Télécommunications et Réseaux (GTR)
 - **Année** : 4ème année
