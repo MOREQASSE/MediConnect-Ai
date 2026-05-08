@@ -4,6 +4,7 @@ import numpy as np
 import requests
 import joblib
 import os
+import datetime
 
 # ---------------------------------------------------------------------------
 # APP BOOTSTRAP
@@ -11,25 +12,106 @@ import os
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path  = os.path.join(BASE_DIR, 'mediconnect_final_model.h5')
-scaler_path = os.path.join(BASE_DIR, 'mediconnect_final_scaler.pkl')
+model_path    = os.path.join(BASE_DIR, 'mediconnect_final_model.h5')
+scaler_path   = os.path.join(BASE_DIR, 'mediconnect_final_scaler.pkl')
+profiles_path = os.path.join(BASE_DIR, 'seasonal_profiles.pkl')
+csv_path      = os.path.join(BASE_DIR, 'AE_attendances_england_monthly.csv')
 
 model      = None
 scaler     = None
+profiles   = None
 status_msg = "Initializing..."
+
+
+def compute_seasonal_profiles():
+    """Fallback: compute monthly mean scaled vectors from NHS CSV."""
+    try:
+        import pandas as pd
+        df = pd.read_csv(csv_path)
+        df['date'] = pd.to_datetime(df['date'])
+
+        candidates = [
+            ['Type 1 Departments - Major A&E',
+             'Type 2 Departments - Single Specialty',
+             'Type 3 Departments - Minor Injury'],
+            ['Type 1 Departments - Major A&E',
+             'Type 2 Departments - Single Specialty',
+             'Type 3 Departments - Minor Injuries'],
+            ['Type 1 Departments - Major A&E',
+             'Type 2 Departments - Single Specialty',
+             'Type 3 Departments - Minor Injury Unit'],
+        ]
+        target_cols = None
+        for c in candidates:
+            if all(col in df.columns for col in c):
+                target_cols = c
+                break
+        if target_cols is None:
+            cols = df.columns.tolist()
+            t1 = next((c for c in cols if 'Type 1' in c and 'Major' in c), None)
+            t2 = next((c for c in cols if 'Type 2' in c), None)
+            t3 = next((c for c in cols if 'Type 3' in c), None)
+            target_cols = [t1, t2, t3]
+            if None in target_cols:
+                raise ValueError("Could not locate Type 1/2/3 columns")
+
+        for col in target_cols:
+            df[col] = df.groupby('Name')[col].transform(lambda x: x.ffill().bfill()).fillna(0)
+
+        df['month'] = df['date'].dt.month
+        monthly_means = df.groupby('month')[target_cols].mean().values
+        monthly_scaled = scaler.transform(monthly_means)
+        return monthly_scaled.astype(np.float32)
+    except Exception as e:
+        print(f"[BOOT] Could not compute profiles: {e}")
+        return np.array([[0.5, 0.3, 0.4]] * 12, dtype=np.float32)
+
 
 try:
     print("[BOOT] Loading AI Components...")
-    model      = tf.keras.models.load_model(model_path, compile=False)
-    scaler     = joblib.load(scaler_path)
+    model = tf.keras.models.load_model(model_path, compile=False)
+    scaler = joblib.load(scaler_path)
+    try:
+        raw_profiles = joblib.load(profiles_path)
+        if isinstance(raw_profiles, dict):
+            raw_profiles = np.array(list(raw_profiles.values()), dtype=np.float32)
+        else:
+            raw_profiles = np.array(raw_profiles, dtype=np.float32)
+        if raw_profiles.shape != (12, 3):
+            print(f"[BOOT] Profile shape {raw_profiles.shape} unexpected, recomputing...")
+            profiles = compute_seasonal_profiles()
+        else:
+            profiles = raw_profiles
+        print("[BOOT] Seasonal profiles loaded.")
+    except Exception as e:
+        print(f"[BOOT] Profile load failed ({e}), computing from CSV...")
+        profiles = compute_seasonal_profiles()
     status_msg = "AI ONLINE | Multi-Output Active"
     print("[BOOT] SUCCESS: Model and Scaler are in memory.")
 except ModuleNotFoundError:
-    status_msg = "ERROR: Run 'pip install scikit-learn'"
-    print("[BOOT] ERROR: scikit-learn is missing.")
+    status_msg = "ERROR: Run 'pip install scikit-learn pandas'"
+    print("[BOOT] ERROR: scikit-learn or pandas is missing.")
 except Exception as e:
     status_msg = f"LOAD FAILED: {str(e)}"
     print(f"[BOOT] ERROR: {str(e)}")
+
+# ---------------------------------------------------------------------------
+# DEPLOY HISTORY (in-memory)
+# ---------------------------------------------------------------------------
+DEPLOY_HISTORY = []
+MAX_HISTORY = 20
+
+
+def record_deploy(priority, port, ok, status_msg):
+    DEPLOY_HISTORY.insert(0, {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "priority": priority,
+        "port": port,
+        "ok": ok,
+        "status": status_msg
+    })
+    if len(DEPLOY_HISTORY) > MAX_HISTORY:
+        DEPLOY_HISTORY.pop()
 
 # ---------------------------------------------------------------------------
 # ODL CARBON CONSTANTS
@@ -41,13 +123,11 @@ FLOW_NODE     = "openflow:1"
 FLOW_TABLE    = 0
 FLOW_ID       = "1"
 
-# Config path  — ODL Carbon RESTCONF v1 (legacy)
 FLOW_CONFIG_URL = (
     f"{ODL_BASE}/restconf/config/opendaylight-inventory:nodes"
     f"/node/{FLOW_NODE}/table/{FLOW_TABLE}/flow/{FLOW_ID}"
 )
 
-# Operational path — reads live packet counters from the dataplane
 FLOW_OPER_URL = (
     f"{ODL_BASE}/restconf/operational/opendaylight-inventory:nodes"
     f"/node/{FLOW_NODE}/table/{FLOW_TABLE}/flow/{FLOW_ID}"
@@ -67,6 +147,7 @@ HTML_TEMPLATE = """
         :root {
             --neon-cyan:  #00f2ff;
             --neon-green: #39ff14;
+            --neon-red:   #ff2a2a;
             --deep-space: #06080a;
             --glass:      rgba(255, 255, 255, 0.05);
             --border:     rgba(0, 242, 255, 0.3);
@@ -83,7 +164,6 @@ HTML_TEMPLATE = """
             overflow: hidden;
         }
 
-        /* ── Layout ── */
         .dashboard-container {
             display: grid;
             grid-template-columns: 380px 1fr;
@@ -107,15 +187,38 @@ HTML_TEMPLATE = """
         h1 {
             color: var(--neon-cyan);
             font-size: 1.4rem;
-            margin-bottom: 30px;
+            margin-bottom: 18px;
             letter-spacing: 3px;
             text-transform: uppercase;
             border-left: 4px solid var(--neon-cyan);
             padding-left: 15px;
         }
 
-        /* ── Controls ── */
-        .control-block  { margin-bottom: 22px; }
+        /* Status row */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 22px;
+            padding: 10px 12px;
+            background: rgba(0,0,0,.3);
+            border-radius: 10px;
+            border: 1px solid #222;
+        }
+        .status-label { font-size: .65rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #333; transition: .3s;
+        }
+        .status-dot.online { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+        .status-dot.offline { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
+        .status-dot.checking {
+            background: var(--neon-cyan);
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        .control-block  { margin-bottom: 18px; }
         label           { display: block; font-size: .75rem; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
         input[type=range] {
@@ -134,8 +237,13 @@ HTML_TEMPLATE = """
         }
         select:focus { border-color: var(--neon-cyan); }
 
-        /* ── Console ── */
-        .console-label { font-size: .7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .console-label { font-size: .7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .console-label button {
+            background: #1a1d23; color: #888; border: 1px solid #333;
+            padding: 4px 10px; border-radius: 6px; font-size: .6rem;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .console-label button:hover { color: var(--neon-cyan); border-color: var(--neon-cyan); }
         .console {
             flex-grow: 1;
             background: rgba(0,0,0,.5);
@@ -148,9 +256,9 @@ HTML_TEMPLATE = """
             overflow-y: auto;
             white-space: pre-wrap;
             word-break: break-all;
+            min-height: 120px;
         }
 
-        /* ── Status chip ── */
         .status-chip {
             margin-top: 12px;
             font-size: .62rem;
@@ -158,11 +266,9 @@ HTML_TEMPLATE = """
             text-align: center;
         }
 
-        /* ── Main viewport ── */
-        .main-viewport { display: flex; flex-direction: column; gap: 20px; }
+        .main-viewport { display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
 
-        /* ── Stat cards ── */
-        .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+        .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; flex-shrink: 0; }
 
         .stat-card {
             background: var(--glass);
@@ -191,7 +297,6 @@ HTML_TEMPLATE = """
         }
         .active-priority .priority-badge { opacity: 1; top: 10px; }
 
-        /* ── Packet counter bar ── */
         .packet-bar {
             display: none;
             background: rgba(0,0,0,.4);
@@ -202,11 +307,53 @@ HTML_TEMPLATE = """
             font-size: .8rem;
             color: var(--neon-green);
             letter-spacing: 1px;
+            flex-shrink: 0;
         }
         .packet-bar.visible { display: block; }
         .packet-bar span    { color: #fff; font-weight: 700; }
 
-        /* ── Topology ── */
+        /* Chart area */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+        .chart-card {
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 15px;
+            padding: 15px;
+            min-height: 200px;
+        }
+        .chart-title {
+            font-size: .75rem; color: #aaa;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .chart-svg { width: 100%; height: 180px; }
+
+        /* History table */
+        .history-card {
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 15px;
+            padding: 15px;
+            flex-shrink: 0;
+        }
+        .history-table {
+            width: 100%; border-collapse: collapse; font-size: .72rem;
+        }
+        .history-table th {
+            text-align: left; color: var(--neon-cyan);
+            padding: 8px; border-bottom: 1px solid #333;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .history-table td {
+            padding: 8px; color: #ccc; border-bottom: 1px solid #222;
+        }
+        .history-table tr:hover td { color: #fff; }
+
         #topology-container {
             flex-grow: 1;
             background: rgba(0,0,0,.3);
@@ -217,8 +364,9 @@ HTML_TEMPLATE = """
             min-height: 220px;
         }
 
-        /* ── Button ── */
+        .action-row { display: flex; gap: 15px; flex-shrink: 0; }
         .action-btn {
+            flex: 1;
             background: var(--neon-green); color: black;
             border: none; padding: 18px;
             font-weight: 900; font-size: .85rem;
@@ -228,8 +376,14 @@ HTML_TEMPLATE = """
         }
         .action-btn:hover  { transform: translateY(-3px); box-shadow: 0 0 40px rgba(57,255,20,.4); }
         .action-btn:active { transform: translateY(0); }
+        .action-btn.stop {
+            background: #ff2a2a; color: white;
+            box-shadow: 0 0 20px rgba(255,42,42,.2);
+            display: none;
+        }
+        .action-btn.stop:hover { box-shadow: 0 0 40px rgba(255,42,42,.4); }
+        .action-btn.stop.visible { display: block; }
 
-        /* ── D3 topology ── */
         .link       { stroke: #2a2d35; stroke-width: 2; }
         .link.active-flow {
             stroke: var(--neon-green); stroke-width: 4;
@@ -246,9 +400,16 @@ HTML_TEMPLATE = """
 <body>
 <div class="dashboard-container">
 
-    <!-- ═══════════════════════ SIDE PANEL ═══════════════════════ -->
+    <!-- SIDE PANEL -->
     <div class="side-panel">
         <h1>MediConnect</h1>
+
+        <div class="status-row">
+            <div class="status-dot checking" id="ai-status-dot" title="AI Model"></div>
+            <span class="status-label">AI Model</span>
+            <div class="status-dot checking" id="odl-status-dot" title="ODL Controller"></div>
+            <span class="status-label">ODL Controller</span>
+        </div>
 
         <div class="control-block">
             <label>Temporal Context: <span id="hour-text" style="color:var(--neon-cyan)">12</span>:00</label>
@@ -272,19 +433,30 @@ HTML_TEMPLATE = """
             <label>Seasonality (Month)</label>
             <select id="month-select" onchange="syncAI()">
                 <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
                 <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
                 <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
                 <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
             </select>
         </div>
 
-        <div class="console-label">SDN Live Monitor</div>
+        <div class="console-label">
+            SDN Live Monitor
+            <button onclick="clearConsole()">Clear</button>
+        </div>
         <div id="odl-console" class="console">> System Initializing...</div>
 
         <div class="status-chip">{{ status }}</div>
     </div>
 
-    <!-- ═══════════════════════ MAIN VIEWPORT ════════════════════ -->
+    <!-- MAIN VIEWPORT -->
     <div class="main-viewport">
 
         <!-- Stat cards -->
@@ -309,7 +481,7 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- Live packet counter bar (hidden until first deploy) -->
+        <!-- Live packet counter bar -->
         <div id="packet-bar" class="packet-bar">
             OPERATIONAL FEEDBACK &nbsp;|&nbsp;
             Flow ID: <span id="pkt-flow-id">—</span> &nbsp;|&nbsp;
@@ -318,33 +490,86 @@ HTML_TEMPLATE = """
             Bytes: <span id="pkt-bytes">—</span>
         </div>
 
+        <!-- Charts -->
+        <div class="chart-row">
+            <div class="chart-card">
+                <div class="chart-title">12-Step Input Sequence (Scaled)</div>
+                <svg id="history-chart" class="chart-svg"></svg>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Reconfiguration History</div>
+                <div id="history-table-container" style="max-height:180px; overflow-y:auto;">
+                    <table class="history-table" id="history-table">
+                        <thead>
+                            <tr><th>Time</th><th>Priority</th><th>Port</th><th>Status</th></tr>
+                        </thead>
+                        <tbody><tr><td colspan="4" style="color:#555; text-align:center;">No deployments yet</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- D3 topology -->
         <div id="topology-container"></div>
 
-        <!-- Deploy button -->
-        <button class="action-btn" onclick="pushSDN()">Deploy AI Flow Rules to ODL</button>
+        <!-- Buttons -->
+        <div class="action-row">
+            <button class="action-btn" onclick="pushSDN()">Deploy AI Flow Rules to ODL</button>
+            <button class="action-btn stop" id="stop-btn" onclick="stopPolling()">Stop Audit</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // ── State ────────────────────────────────────────────────────
+    // State
     let currentPriority = '';
     let packetPollTimer = null;
-    const consoleEl    = document.getElementById('odl-console');
+    const consoleEl = document.getElementById('odl-console');
+    const MAX_LOG_LINES = 50;
+    let debounceTimer;
+    let resizeTimer;
 
-    // ── Console helper ───────────────────────────────────────────
+    // Console helper
     function log(msg) {
         const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
-        consoleEl.textContent = `[${ts}] ${msg}\\n` + consoleEl.textContent;
+        const lines = consoleEl.textContent.split('\\n');
+        lines.unshift(`[${ts}] ${msg}`);
+        if (lines.length > MAX_LOG_LINES) lines.length = MAX_LOG_LINES;
+        consoleEl.textContent = lines.join('\\n');
+    }
+    function clearConsole() {
+        consoleEl.textContent = '> Console cleared.\\n';
     }
 
-    // ── D3 topology ──────────────────────────────────────────────
+    // Health check
+    async function checkHealth() {
+        try {
+            const res = await fetch('/api/health');
+            const data = await res.json();
+            const aiDot = document.getElementById('ai-status-dot');
+            const odlDot = document.getElementById('odl-status-dot');
+            aiDot.className = 'status-dot ' + (data.ai ? 'online' : 'offline');
+            odlDot.className = 'status-dot ' + (data.odl ? 'online' : 'offline');
+            if (!data.odl) log('[HEALTH] ODL Controller unreachable');
+        } catch(e) {
+            document.getElementById('ai-status-dot').className = 'status-dot offline';
+            document.getElementById('odl-status-dot').className = 'status-dot offline';
+        }
+    }
+
+    // D3 topology
+    let topoSvg = null;
     function drawViz(priority) {
         const container = d3.select('#topology-container');
-        container.html('');
-        const width  = container.node().clientWidth  || 600;
-        const height = container.node().clientHeight || 260;
-        const svg    = container.append('svg').attr('width', width).attr('height', height);
+        if (!topoSvg) {
+            container.html('');
+            const width  = container.node().clientWidth  || 600;
+            const height = container.node().clientHeight || 260;
+            topoSvg = container.append('svg').attr('width', width).attr('height', height).attr('id', 'topo-svg');
+        }
+        const svg = topoSvg;
+        const width = +svg.attr('width');
+        const height = +svg.attr('height');
 
         const nodes = [
             { id: 'ctrl',  name: 'ODL Controller', color: '#8a2be2', fx: width/2,     fy: 60 },
@@ -361,26 +586,81 @@ HTML_TEMPLATE = """
             { source: 'sw1',   target: 'type3', active: priority === 'type3' },
         ];
 
-        svg.append('g').selectAll('line').data(links).join('line')
+        // Links - data join
+        const linkSel = svg.selectAll('line').data(links);
+        linkSel.enter().append('line').attr('class', 'link').merge(linkSel)
             .attr('class', d => d.active ? 'link active-flow' : 'link')
             .attr('x1', d => nodes.find(n => n.id === d.source).fx)
             .attr('y1', d => nodes.find(n => n.id === d.source).fy)
             .attr('x2', d => nodes.find(n => n.id === d.target).fx)
             .attr('y2', d => nodes.find(n => n.id === d.target).fy);
+        linkSel.exit().remove();
 
-        const nodeGroup = svg.append('g').selectAll('g').data(nodes).join('g')
+        // Nodes - data join
+        const nodeSel = svg.selectAll('.node').data(nodes, d => d.id);
+        const nodeEnter = nodeSel.enter().append('g').attr('class', 'node')
             .attr('transform', d => `translate(${d.fx},${d.fy})`);
 
-        nodeGroup.append('circle')
+        nodeEnter.append('circle')
             .attr('r', d => d.id === 'ctrl' ? 25 : 18)
+            .attr('fill', d => d.color);
+        nodeEnter.append('text').attr('dy', 34).attr('text-anchor', 'middle').text(d => d.name);
+
+        const nodeMerge = nodeEnter.merge(nodeSel);
+        nodeMerge.select('circle')
             .attr('fill', d => d.id === priority ? '#39ff14' : d.color)
             .style('filter', d => d.id === priority ? 'drop-shadow(0 0 10px #39ff14)' : 'none');
 
-        nodeGroup.append('text').attr('dy', 34).attr('text-anchor', 'middle').text(d => d.name);
+        nodeSel.exit().remove();
     }
 
-    // ── AI sync ──────────────────────────────────────────────────
-    async function syncAI() {
+    // Draw history chart
+    function drawHistoryChart(historyData) {
+        const svg = d3.select('#history-chart');
+        svg.selectAll('*').remove();
+        const width = svg.node().clientWidth || 300;
+        const height = svg.node().clientHeight || 180;
+        const margin = {top: 10, right: 10, bottom: 25, left: 35};
+        const innerW = width - margin.left - margin.right;
+        const innerH = height - margin.top - margin.bottom;
+        const g = svg.attr('width', width).attr('height', height).append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const labels = ['T-11','T-10','T-9','T-8','T-7','T-6','T-5','T-4','T-3','T-2','T-1','Now'];
+        const series = [
+            {name:'Type 1', color:'#00f2ff', values: historyData.map(d => d[0])},
+            {name:'Type 2', color:'#39ff14', values: historyData.map(d => d[1])},
+            {name:'Type 3', color:'#ffaa00', values: historyData.map(d => d[2])},
+        ];
+
+        const x = d3.scalePoint().domain(labels).range([0, innerW]);
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(series, s => d3.max(s.values)) * 1.1 || 1])
+            .range([innerH, 0]);
+
+        g.append('g').attr('transform', `translate(0,${innerH})`).call(d3.axisBottom(x).tickSize(0).tickPadding(8))
+            .selectAll('text').style('fill', '#888').style('font-size', '9px');
+        g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-innerW))
+            .selectAll('text').style('fill', '#888').style('font-size', '9px');
+        g.selectAll('.domain, line').style('stroke', '#333');
+
+        const line = d3.line().x((d,i) => x(labels[i])).y(d => y(d)).curve(d3.curveMonotoneX);
+
+        series.forEach(s => {
+            g.append('path').datum(s.values).attr('fill','none').attr('stroke',s.color)
+                .attr('stroke-width',2).attr('d', line);
+            g.append('text').attr('x', innerW - 50).attr('y', y(s.values[s.values.length-1]) - 5)
+                .attr('fill', s.color).style('font-size', '10px').text(s.name);
+        });
+    }
+
+    // AI sync (debounced)
+    function syncAI() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(doSyncAI, 120);
+    }
+
+    async function doSyncAI() {
         const h = document.getElementById('hour-slider').value;
         const d = document.getElementById('day-select').value;
         const m = document.getElementById('month-select').value;
@@ -389,6 +669,11 @@ HTML_TEMPLATE = """
         try {
             const res  = await fetch(`/api/predict?hour=${h}&day=${d}&month=${m}`);
             const data = await res.json();
+
+            if (data.error) {
+                log('SYNC ERROR: ' + data.error);
+                return;
+            }
 
             document.getElementById('val-type1').innerText = data.rooms.type1.toLocaleString();
             document.getElementById('val-type2').innerText = data.rooms.type2.toLocaleString();
@@ -403,12 +688,15 @@ HTML_TEMPLATE = """
                 currentPriority = data.priority;
                 drawViz(currentPriority);
             }
+
+            if (data.history) drawHistoryChart(data.history);
         } catch(e) { log('SYNC ERROR: ' + e.message); }
     }
 
-    // ── Deploy + start packet polling ────────────────────────────
+    // Deploy + start packet polling
     async function pushSDN() {
-        log(`[SIGNAL] AI Predicted Surge → ${currentPriority.toUpperCase()}`);
+        if (!currentPriority) { log('[WARN] No AI prediction yet. Move the sliders first.'); return; }
+        log(`[SIGNAL] AI Predicted Surge -> ${currentPriority.toUpperCase()}`);
         log('[ODL] Sending flow rule to controller...');
 
         try {
@@ -424,6 +712,7 @@ HTML_TEMPLATE = """
             if (result.ok) {
                 log(`[DEPLOYED] Flow ID: ${result.flow_id} | Priority: ${result.priority} | Target: Port ${result.port}`);
                 startPacketPolling();
+                fetchHistory();
             } else {
                 log('[WARN] Rule may not have reached the dataplane. Check ODL connectivity.');
             }
@@ -432,12 +721,10 @@ HTML_TEMPLATE = """
         }
     }
 
-    // ── Packet polling ───────────────────────────────────────────
+    // Packet polling
     function startPacketPolling() {
-        // Show the counter bar
         document.getElementById('packet-bar').classList.add('visible');
-
-        // Clear any existing poll
+        document.getElementById('stop-btn').classList.add('visible');
         if (packetPollTimer) clearInterval(packetPollTimer);
 
         async function poll() {
@@ -459,19 +746,60 @@ HTML_TEMPLATE = """
             }
         }
 
-        poll();                                    // immediate first tick
-        packetPollTimer = setInterval(poll, 4000); // then every 4 s
+        poll();
+        packetPollTimer = setInterval(poll, 4000);
     }
 
-    // ── Boot ─────────────────────────────────────────────────────
+    function stopPolling() {
+        if (packetPollTimer) {
+            clearInterval(packetPollTimer);
+            packetPollTimer = null;
+        }
+        document.getElementById('packet-bar').classList.remove('visible');
+        document.getElementById('stop-btn').classList.remove('visible');
+        log('[AUDIT] Packet polling stopped by user.');
+    }
+
+    // History table
+    async function fetchHistory() {
+        try {
+            const res = await fetch('/api/history');
+            const data = await res.json();
+            const tbody = document.querySelector('#history-table tbody');
+            if (!data.history || data.history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="color:#555; text-align:center;">No deployments yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.history.map(h => `
+                <tr>
+                    <td>${new Date(h.timestamp).toLocaleTimeString('en-GB',{hour12:false})}</td>
+                    <td>${h.priority.toUpperCase()}</td>
+                    <td>${h.port}</td>
+                    <td style="color:${h.ok ? 'var(--neon-green)' : '#ff2a2a'}">${h.status}</td>
+                </tr>
+            `).join('');
+        } catch(e) { console.error('History fetch failed', e); }
+    }
+
+    // Boot
     window.onload = () => {
-        syncAI();
+        doSyncAI();
+        checkHealth();
+        setInterval(checkHealth, 10000);
         setTimeout(() => {
             if (consoleEl.textContent.includes('Initializing')) {
-                consoleEl.textContent =
-                    '> [ODL] Controller Link Established.\\n> [AI CORE] Awaiting Manual Override...\\n';
+                consoleEl.textContent = '> [ODL] Controller Link Established.\\n> [AI CORE] Awaiting Manual Override...\\n';
             }
         }, 1500);
+    };
+
+    window.onresize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            topoSvg = null;
+            d3.select('#topology-container').html('');
+            drawViz(currentPriority);
+        }, 200);
     };
 </script>
 </body>
@@ -487,71 +815,100 @@ def index():
     return render_template_string(HTML_TEMPLATE, status=status_msg)
 
 
+@app.route('/api/health')
+def health():
+    """Return AI and ODL connectivity status."""
+    ai_ok = model is not None and scaler is not None
+    odl_ok = False
+    try:
+        r = requests.get(
+            f"{ODL_BASE}/restconf/operational/opendaylight-inventory:nodes",
+            auth=ODL_AUTH,
+            headers=ODL_HEADERS,
+            timeout=2
+        )
+        odl_ok = r.status_code == 200
+    except Exception:
+        pass
+    return jsonify({"ai": ai_ok, "odl": odl_ok})
+
+
 @app.route('/api/predict')
 def predict():
-    h = int(request.args.get('hour',  12))
-    d = int(request.args.get('day',    0))
-    m = int(request.args.get('month',  1))
+    h = request.args.get('hour', '12', type=str)
+    d = request.args.get('day', '0', type=str)
+    m = request.args.get('month', '1', type=str)
 
-    if model is None or scaler is None:
-        # Graceful degradation: return synthetic values so the UI still works
-        return jsonify({"rooms": {"type1": 0, "type2": 0, "type3": 0}, "priority": "type1"})
+    # Input validation
+    try:
+        h = max(0, min(23, int(h)))
+        d = max(0, min(6, int(d)))
+        m = max(1, min(12, int(m)))
+    except ValueError:
+        return jsonify({"error": "Invalid parameter type", "rooms": {"type1": 0, "type2": 0, "type3": 0}, "priority": "type1"}), 400
+
+    if model is None or scaler is None or profiles is None:
+        return jsonify({
+            "rooms": {"type1": 0, "type2": 0, "type3": 0},
+            "priority": "type1",
+            "history": [[0, 0, 0]] * 12
+        })
 
     try:
-        history = []
-        for i in range(12):
-            m_step = (m - 12 + i) % 12 + 1
-            v1 = 0.5  + 0.10 * np.sin(m_step * np.pi / 6)
-            v2 = 0.3  + 0.05 * np.cos(m_step * np.pi / 6)
-            v3 = 0.4  + 0.15 * np.sin((m_step + 2) * np.pi / 6)
-            if i == 11:
-                intensity = 1.0 + (h / 24.0) + (d / 7.0)
-                v1, v2, v3 = v1 * intensity, v2 * intensity, v3 * intensity
-            history.append([v1, v2, v3])
+        # Rotate profiles so the sequence ends with the selected month
+        history = np.roll(profiles.copy(), shift=-m, axis=0)
+        # Inject temporal context into the final step
+        intensity = 1.0 + (h / 36.0) + (d / 10.0)
+        history[-1] = history[-1] * intensity
+        history = np.clip(history, 0.0, 1.0)
 
         input_data = np.array(history, dtype=np.float32).reshape(1, 12, 3)
         raw_pred   = model.predict(input_data, verbose=0)
         real_vals  = scaler.inverse_transform(raw_pred)[0]
 
-        # Demo multiplier so Type-2 surge is visually obvious
         rooms = {
             "type1": int(max(0, real_vals[0])),
-            "type2": int(max(0, real_vals[1] * 7.6)),
+            "type2": int(max(0, real_vals[1])),
             "type3": int(max(0, real_vals[2])),
         }
         priority_room = max(rooms, key=rooms.get)
+        history_list = history.tolist()
 
         return jsonify({
             "rooms":    rooms,
             "total":    sum(rooms.values()),
             "priority": priority_room,
+            "history":  history_list,
         })
 
     except Exception as e:
         print(f"[PREDICT] Error: {e}")
-        return jsonify({"rooms": {"type1": 0, "type2": 0, "type3": 0}, "priority": "type1"})
+        return jsonify({
+            "rooms": {"type1": 0, "type2": 0, "type3": 0},
+            "priority": "type1",
+            "history": [[0, 0, 0]] * 12
+        })
 
 
 @app.route('/api/apply_sdn_policy', methods=['POST'])
 def apply_sdn_policy():
     """
     Push an OpenFlow rule to ODL Carbon via RESTCONF v1 /restconf/config/.
-    Returns a structured JSON so the front-end can log a detailed DEPLOYED line.
+    Adds idle/hard timeouts for a production-grade rule payload.
     """
     priority_room = request.json.get('priority', 'type1')
     port_map      = {"type1": 1, "type2": 2, "type3": 3}
     target_port   = port_map.get(priority_room, 1)
     flow_priority = 65000
 
-    # ── Build the OpenFlow rule body ─────────────────────────────
-    # ODL Carbon expects the "flow-node-inventory:" namespace prefix
-    # inside the body and the legacy /restconf/config/ path.
     flow_body = {
         "flow-node-inventory:flow": [
             {
                 "id":       FLOW_ID,
                 "table_id": FLOW_TABLE,
                 "priority": flow_priority,
+                "idle-timeout": 0,
+                "hard-timeout": 0,
                 "match": {
                     "in-port": str(target_port)
                 },
@@ -577,15 +934,7 @@ def apply_sdn_policy():
     }
 
     try:
-        # Step 1 — DELETE any stale rule to avoid 409 Conflict
-        requests.delete(
-            FLOW_CONFIG_URL,
-            auth=ODL_AUTH,
-            headers=ODL_HEADERS,
-            timeout=2
-        )
-
-        # Step 2 — PUT the new rule
+        requests.delete(FLOW_CONFIG_URL, auth=ODL_AUTH, headers=ODL_HEADERS, timeout=2)
         r = requests.put(
             FLOW_CONFIG_URL,
             json=flow_body,
@@ -596,7 +945,7 @@ def apply_sdn_policy():
 
         ok = r.status_code in (200, 201, 204)
         msg = (
-            f"Flow deployed → Port {target_port} | HTTP {r.status_code}"
+            f"Flow deployed -> Port {target_port} | HTTP {r.status_code}"
             if ok else
             f"ODL rejected rule | HTTP {r.status_code} | {r.text[:120]}"
         )
@@ -604,6 +953,8 @@ def apply_sdn_policy():
         print(f"[SDN] Port={target_port} | HTTP={r.status_code}")
         if not ok:
             print(f"[SDN] Response body: {r.text}")
+
+        record_deploy(priority_room, target_port, ok, msg)
 
         return jsonify({
             "ok":       ok,
@@ -616,20 +967,16 @@ def apply_sdn_policy():
     except requests.exceptions.ConnectionError:
         msg = "Cannot reach ODL — is the controller running on port 8181?"
         print(f"[SDN] {msg}")
+        record_deploy(priority_room, target_port, False, msg)
         return jsonify({"ok": False, "status": msg})
     except Exception as e:
         print(f"[SDN] Unexpected error: {e}")
+        record_deploy(priority_room, target_port, False, str(e))
         return jsonify({"ok": False, "status": f"Error: {str(e)}"})
 
 
 @app.route('/api/packet_count')
 def packet_count():
-    """
-    Query the ODL OPERATIONAL datastore for live packet/byte counters.
-    This is the 'Verify' phase of the Sense-Think-Act cycle.
-    Config  = what you told the switch to do.
-    Operational = what the switch is actually doing right now.
-    """
     try:
         r = requests.get(
             FLOW_OPER_URL,
@@ -642,9 +989,6 @@ def packet_count():
             return jsonify({"ok": False, "reason": f"HTTP {r.status_code}"})
 
         data = r.json()
-
-        # Navigate the ODL operational JSON tree
-        # Path: flow-node-inventory:flow[0] → flow-statistics → packet-count
         flows = (
             data.get("flow-node-inventory:flow")
             or data.get("flow", [])
@@ -658,7 +1002,6 @@ def packet_count():
         packets    = statistics.get("packet-count", 0)
         byte_count = statistics.get("byte-count",   0)
 
-        # Also try the nested path used by some Carbon builds
         if packets == 0:
             nested = flow.get("opendaylight-flow-statistics:flow-statistics", {})
             packets    = nested.get("packet-count", 0)
@@ -681,6 +1024,11 @@ def packet_count():
     except Exception as e:
         print(f"[VERIFY] Error: {e}")
         return jsonify({"ok": False, "reason": str(e)})
+
+
+@app.route('/api/history')
+def history():
+    return jsonify({"history": DEPLOY_HISTORY})
 
 
 # ---------------------------------------------------------------------------

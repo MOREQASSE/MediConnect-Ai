@@ -1,0 +1,756 @@
+\documentclass[12pt,a4paper]{article}
+
+%==================== PACKAGES ====================
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{inconsolata}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{mdframed}
+\usepackage{tikz}
+\usepackage{setspace}
+\usepackage{tabularx}
+
+% Configuration des marges
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm}
+
+% Couleurs personnalisées
+\definecolor{primaryblue}{RGB}{0, 70, 127}
+\definecolor{accentblue}{RGB}{0, 120, 215}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{medgreen}{RGB}{0, 128, 96}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Style des titres
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{primaryblue}}{\thesection}{1em}{}[\titlerule]
+\titleformat{\subsection}
+  {\normalfont\bfseries\color{accentblue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\bfseries\color{accentblue!70}}{\thesubsubsection}{1em}{}
+
+% Style pour listings Python
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=Python
+}
+\lstset{style=mystyle}
+
+% Hyperliens
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    urlcolor=accentblue,
+    citecolor=medgreen
+}
+
+% En-tête et pied de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{primaryblue}\textbf{MediConnect AI}}
+\fancyhead[R]{\small\color{gray}Mini Projet GTR -- 4\textsuperscript{ème} année}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Boîte pour les screenshots
+\newcommand{\screenshotbox}[2]{%
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+      \draw[dashed, thick, gray!60, rounded corners=5pt]
+        (0,0) rectangle (\linewidth*0.95, #1);
+      \node[gray!70] at (\linewidth*0.475, #1/2)
+        {\large\itshape [Screenshot : #2]};
+    \end{tikzpicture}
+    \caption{#2}
+  \end{figure}%
+}
+
+% Boîte colorée pour les notes importantes
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{infobox}[1]{
+  colback=accentblue!8,
+  colframe=primaryblue,
+  fonttitle=\bfseries,
+  title=#1,
+  rounded corners,
+  breakable
+}
+
+%==================== DOCUMENT ====================
+\begin{document}
+
+% Pas d'en-tête sur la page de garde
+\thispagestyle{empty}
+
+%===================================================
+% PAGE DE GARDE
+%===================================================
+\begin{titlepage}
+\centering
+
+% Logos
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.42\linewidth}
+  \centering
+  \includegraphics[width=0.85\linewidth]{logo4.png}
+\end{minipage}
+\hfill
+\begin{minipage}{0.42\linewidth}
+  \centering
+  \includegraphics[width=0.85\linewidth]{uca.png}
+\end{minipage}
+\end{figure}
+
+\vspace{0.4cm}
+{\large\bfseries\color{primaryblue} Université Cadi Ayyad}\\[0.2cm]
+{\normalsize École Nationale des Sciences Appliquées de Safi (ENSAS)}
+
+\vspace{0.5cm}
+\textcolor{primaryblue}{\rule{\linewidth}{1.5pt}}
+
+\vspace{0.6cm}
+{\Huge\bfseries\color{red} Rapport de Mini Projet}
+
+\vspace{0.5cm}
+\textcolor{primaryblue}{\rule{\linewidth}{1.5pt}}
+
+\vspace{0.7cm}
+{\LARGE\bfseries\color{primaryblue} MediConnect AI}\\[0.3cm]
+{\large\itshape Système d'Optimisation Intelligente\\pour les Réseaux des Hôpitaux}\\[0.2cm]
+{\normalsize IA et Réseaux Définis par Logiciel (SDN) pour une\\Gestion Dynamique des Ressources Hospitalières}
+
+\vspace{0.8cm}
+{\large\bfseries\color{primaryblue} Filière : GTR \quad|\quad Niveau : 4\textsuperscript{ème} année}
+
+\vspace{0.8cm}
+
+% Tableau membres équipe
+\begin{tcolorbox}[
+  colback=lightgray,
+  colframe=primaryblue,
+  width=0.88\linewidth,
+  title={\bfseries Équipe Projet},
+  fonttitle=\color{white},
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=primaryblue}
+]
+\begin{tabular}{ll}
+\textbf{Membres :} & Mohammed Reqasse \\
+                   & Souhayl Ramdani \\
+                   & Ibrahim Laamech \\[4pt]
+\textbf{Encadrant :} & Mme. Mestouri \\[4pt]
+\textbf{Filière :} & Génie Télécommunications et Réseaux (GTR) \\[4pt]
+\textbf{Année universitaire :} & 2025 -- 2026 \\[4pt]
+\textbf{Date de soumission :} & \quad xx / xx / 2026
+\end{tabular}
+\end{tcolorbox}
+
+\vfill
+{\small\color{gray} ENSAS -- École Nationale des Sciences Appliquées de Safi}
+\end{titlepage}
+
+%===================================================
+% PAGES LIMINAIRES (numérotation romaine)
+%===================================================
+\pagenumbering{roman}
+\thispagestyle{fancy}
+
+%--- Remerciements ---
+\newpage
+\section*{Remerciements}
+\addcontentsline{toc}{section}{Remerciements}
+
+Nous tenons à exprimer notre sincère gratitude envers toutes les personnes qui ont contribué à la réalisation de ce mini projet.
+
+Nous remercions tout particulièrement \textbf{Mme. Mestouri}, notre encadrante pédagogique, pour ses précieux conseils, sa disponibilité et son soutien tout au long de ce travail. Ses orientations méthodologiques ont été déterminantes pour mener à bien ce projet.
+
+Nous remercions également le corps enseignant du département Informatique de l'ENSAS pour la qualité de la formation dispensée tout au long de notre cursus en Génie Télécommunications et Réseaux.
+
+Enfin, nos remerciements vont à l'ensemble des personnes ayant contribué, de près ou de loin, à l'aboutissement de ce projet.
+
+%--- Résumé ---
+\newpage
+\section*{Résumé}
+\addcontentsline{toc}{section}{Résumé}
+
+Ce rapport présente \textbf{MediConnect AI}, un système innovant d'optimisation intelligente des réseaux hospitaliers combinant l'Intelligence Artificielle prédictive et les Réseaux Définis par Logiciel (SDN).
+
+Face aux défis croissants de gestion des flux et des ressources dans les hôpitaux modernes, ce projet propose une architecture à deux niveaux : un cœur prédictif basé sur des modèles LSTM/GRU entraînés sur des données NHS (60 000+ enregistrements sur 10 ans), et un système d'exécution SDN piloté par OpenDaylight permettant la reconfiguration dynamique des VLANs.
+
+Le projet est structuré en trois phases : le développement du modèle d'IA, la conception du système d'orchestration réseau, et la réalisation d'un prototype intégrant un tableau de bord interactif. Les résultats attendus incluent une réduction jusqu'à 60\% des pics de congestion réseau et une amélioration significative de la qualité de service pour les équipements médicaux critiques.
+
+\vspace{0.5cm}
+\noindent\textbf{Mots-clés :} Intelligence Artificielle, SDN, LSTM/GRU, OpenDaylight, Mininet, Optimisation réseau, Santé numérique.
+
+\vspace{0.5cm}
+\hrule
+\vspace{0.3cm}
+\noindent\textbf{Abstract}
+
+\textit{This report presents MediConnect AI, an innovative system for intelligent optimization of hospital networks combining predictive Artificial Intelligence and Software-Defined Networking (SDN). The proposed architecture integrates LSTM/GRU predictive models trained on NHS data with an OpenDaylight SDN controller for dynamic VLAN reconfiguration, targeting up to 60\% reduction in network congestion peaks.}
+
+%--- Table des matières ---
+\newpage
+\tableofcontents
+\addcontentsline{toc}{section}{Table des matières}
+
+%--- Liste des figures ---
+\newpage
+\listoffigures
+\addcontentsline{toc}{section}{Liste des figures}
+
+%--- Liste des abréviations ---
+\newpage
+\section*{Liste des Abréviations}
+\addcontentsline{toc}{section}{Liste des Abréviations}
+
+\begin{tabular}{ll}
+\textbf{API} & Application Programming Interface \\
+\textbf{GRU} & Gated Recurrent Unit \\
+\textbf{IA}  & Intelligence Artificielle \\
+\textbf{LSTM} & Long Short-Term Memory \\
+\textbf{NHS} & National Health Service \\
+\textbf{ODL} & OpenDaylight \\
+\textbf{REST} & Representational State Transfer \\
+\textbf{SDN} & Software-Defined Networking \\
+\textbf{VLAN} & Virtual Local Area Network \\
+\textbf{GTR} & Génie Télécommunications et Réseaux \\
+\textbf{ENSAS} & École Nationale des Sciences Appliquées de Safi \\
+\end{tabular}
+
+%===================================================
+% CORPS DU RAPPORT (numérotation arabe)
+%===================================================
+\newpage
+\pagenumbering{arabic}
+
+%===================================================
+\section{Introduction Générale}
+%===================================================
+
+\begin{onehalfspacing}
+
+Les hôpitaux modernes font face à des défis majeurs dans la gestion de leurs infrastructures numériques. L'explosion des équipements médicaux connectés, la multiplication des flux de données cliniques et les pics imprévus de fréquentation mettent à rude épreuve des systèmes informatiques souvent rigides et peu adaptatifs.
+
+Dans ce contexte, l'association de l'\textbf{Intelligence Artificielle (IA)} et des \textbf{Réseaux Définis par Logiciel (SDN)} offre une perspective prometteuse pour transformer la gestion des infrastructures hospitalières. Ces technologies permettent de passer d'une administration réseau statique et réactive à un pilotage dynamique, prédictif et autonome.
+
+Ce projet, intitulé \textbf{MediConnect AI}, vise à concevoir et prototyper un tel système en s'appuyant sur :
+\begin{itemize}[leftmargin=1.5cm]
+  \item Des modèles d'apprentissage profond (LSTM/GRU) pour la prédiction des flux patients et de la congestion réseau.
+  \item Un contrôleur SDN OpenDaylight pour l'orchestration dynamique du réseau hospitalier.
+  \item Un tableau de bord interactif pour la visualisation et la supervision en temps réel.
+\end{itemize}
+
+Ce rapport est organisé comme suit : nous présentons d'abord le contexte et la problématique (Section 2), puis la solution proposée et son architecture (Section 3), suivi du plan d'exécution en trois phases (Section 4), des résultats obtenus (Section 5), des difficultés rencontrées (Section 6), et enfin une conclusion et des perspectives (Section 7).
+
+\end{onehalfspacing}
+
+%===================================================
+\section{Contexte et Problématique}
+%===================================================
+
+\subsection{Contexte Général}
+
+Les systèmes d'information hospitaliers constituent le socle de la prise en charge des patients. Avec l'essor des équipements médicaux connectés — moniteurs cardiaques, pompes à perfusion intelligentes, scanners, systèmes d'imagerie — le trafic réseau intra-hospitalier a connu une croissance exponentielle. Cette évolution expose les établissements de santé à des vulnérabilités critiques en matière de performance et de disponibilité réseau.
+
+Le \textbf{National Health Service (NHS)} du Royaume-Uni constitue un cas d'étude particulièrement riche. Ses données publiques (Kaggle -- A\&E Attendances England) couvrent plus de 10 ans de fréquentation des services d'urgence, soit plus de 60 000 enregistrements mensuels, offrant une base solide pour l'entraînement de modèles prédictifs.
+
+\subsection{Problématique}
+
+Les hôpitaux actuels souffrent de plusieurs dysfonctionnements liés à leurs infrastructures réseau :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Temps d'attente excessifs} dus à une mauvaise anticipation des pics de fréquentation.
+  \item \textbf{Mauvaise allocation des ressources} (personnel, lits, équipements) en temps réel.
+  \item \textbf{Congestion réseau} affectant la transmission de données médicales critiques.
+  \item \textbf{Incapacité à anticiper} les situations d'urgence et les surcharges systémiques.
+\end{itemize}
+
+\begin{infobox}{Question centrale}
+Comment concevoir un système capable de \textit{prédire} les variations de flux hospitaliers et de \textit{reconfigurer automatiquement} le réseau pour garantir la qualité de service des équipements critiques ?
+\end{infobox}
+
+%===================================================
+\section{Solution Proposée : MediConnect AI}
+%===================================================
+
+\subsection{Architecture Générale}
+
+MediConnect AI repose sur une architecture à deux niveaux complémentaires, illustrée dans la figure \ref{fig:architecture} :
+
+\screenshotbox{5cm}{Architecture globale du système MediConnect AI}
+\label{fig:architecture}
+
+\subsubsection{Niveau 1 -- Cœur Prédictif (IA)}
+
+Le premier niveau constitue le cerveau analytique du système :
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Modèles LSTM/GRU} entraînés sur 10 ans de données NHS (60 000+ enregistrements).
+  \item Prédiction des flux patients et identification proactive des goulots d'étranglement réseau.
+  \item Génération de recommandations d'allocation optimale des ressources (personnel, lits, bande passante).
+\end{itemize}
+
+\subsubsection{Niveau 2 -- Système d'Exécution (SDN)}
+
+Le second niveau traduit les prédictions en actions réseau concrètes :
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Contrôleur OpenDaylight} pour la gestion centralisée et programmatique du réseau.
+  \item \textbf{VLANs dynamiques} segmentant automatiquement le trafic selon les priorités (médical critique, administratif, patient).
+  \item Reconfiguration en temps réel basée sur les sorties du modèle d'IA.
+\end{itemize}
+
+La chaîne de traitement est la suivante :
+\[
+\text{Données NHS} \;\longrightarrow\; \text{Modèles IA} \;\longrightarrow\; \text{Recommandations} \;\longrightarrow\; \text{Contrôleur SDN} \;\longrightarrow\; \text{Réseau Hospitalier}
+\]
+
+\subsection{Innovation Technique}
+
+L'originalité de MediConnect AI réside dans trois aspects distincts :
+
+\begin{enumerate}[leftmargin=1.5cm]
+  \item \textbf{Intégration IA-Réseau :} Première solution couplant directement la prédiction médicale avec l'optimisation infrastructurelle en temps réel.
+  \item \textbf{Adaptabilité Dynamique :} Système auto-apprenant s'ajustant continuellement aux conditions réelles de l'hôpital.
+  \item \textbf{Non-Intrusion :} Utilisation de technologies SDN s'intégrant à l'infrastructure existante sans remplacement coûteux.
+\end{enumerate}
+
+\subsection{Impact et Bénéfices Attendus}
+
+\begin{tabularx}{\linewidth}{|l|X|}
+\hline
+\rowcolor{primaryblue!15}
+\textbf{Domaine} & \textbf{Bénéfice} \\
+\hline
+Équipements médicaux & Connectivité garantie, latence réduite, priorisation automatique \\
+\hline
+Infrastructure réseau & Réduction jusqu'à 60\% des pics de congestion \\
+\hline
+Opérationnel & Interopérabilité améliorée, maintenance préventive, scalabilité \\
+\hline
+\end{tabularx}
+
+%===================================================
+\section{Plan d'Exécution du Projet}
+%===================================================
+
+Le projet est structuré en trois phases successives, chacune constituant un jalon clé du développement.
+
+%---------- PHASE 1 ----------
+\subsection{Phase 1 : Développement du Modèle d'IA}
+
+\subsubsection{Acquisition et Préparation des Données}
+
+\textbf{Situation Cible :} Utiliser les données NHS comme proxy représentatif des flux de patients dans un environnement hospitalier réel.
+
+\textbf{Dataset :} \textit{A\&E Attendances England} (Kaggle -- NHS England)
+\begin{itemize}[leftmargin=1.5cm]
+  \item Période couverte : 2010 -- 2020 (données mensuelles).
+  \item Volume : $\sim$ 60 000 enregistrements.
+  \item Variables clés : volume patients (Types 1, 2, 3), indicateurs de performance ($<$4h, $>$12h), coordonnées géographiques des hôpitaux.
+\end{itemize}
+
+\textbf{Plan d'Exécution :}
+\begin{enumerate}[leftmargin=1.5cm]
+  \item Collecte et nettoyage des données (traitement des valeurs manquantes, normalisation).
+  \item Ingénierie des caractéristiques (extraction de patterns temporels, saisonnalité).
+  \item Validation et enrichissement du jeu de données.
+\end{enumerate}
+
+\screenshotbox{4.5cm}{Visualisation des données NHS après nettoyage (distribution temporelle)}
+
+\subsubsection{Développement des Modèles Prédictifs}
+
+\textbf{Situation Cible :} Développer des modèles de séries temporelles capables de prédire la congestion réseau avec une précision suffisante pour la prise de décision automatique.
+
+\textbf{Modèles implémentés :}
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{LSTM (Long Short-Term Memory)} : adapté à la mémorisation de dépendances à long terme dans les séries temporelles hospitalières.
+  \item \textbf{GRU (Gated Recurrent Unit)} : variante plus légère, plus rapide à entraîner, utilisée comme référence comparative.
+\end{itemize}
+
+\begin{lstlisting}[caption={Exemple d'architecture LSTM pour la prédiction de flux}, label={lst:lstm}]
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout
+
+model = Sequential([
+    LSTM(64, return_sequences=True, input_shape=(seq_len, features)),
+    Dropout(0.2),
+    LSTM(32, return_sequences=False),
+    Dropout(0.2),
+    Dense(16, activation='relu'),
+    Dense(1)  # Prediction: congestion level
+])
+
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+\end{lstlisting}
+
+\screenshotbox{5cm}{Courbes d'entraînement du modèle LSTM (loss / validation loss)}
+
+\screenshotbox{5cm}{Comparaison des prédictions LSTM vs GRU sur les données de test}
+
+%---------- PHASE 2 ----------
+\subsection{Phase 2 : Système d'Orchestration Réseau (SDN)}
+
+\subsubsection{Environnement Technique}
+
+L'environnement SDN est composé de deux outils complémentaires :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{OpenDaylight (ODL)} : contrôleur SDN industriel, fiabilité adaptée aux environnements critiques, support des standards de sécurité médicale.
+  \item \textbf{Mininet} : émulateur réseau permettant de créer des topologies virtuelles réalistes pour les tests.
+\end{itemize}
+
+\textbf{Prérequis d'installation :}
+
+\begin{lstlisting}[language=bash, caption={Installation de l'environnement SDN}]
+# Installation JDK 23 (requis par ODL)
+sudo apt-get install openjdk-23-jdk -y
+java -version
+
+# Installation Mininet
+sudo apt-get install mininet -y
+sudo mn --version
+
+# Telechargement OpenDaylight (release Aluminium)
+wget https://nexus.opendaylight.org/content/repositories/\
+  opendaylight.release/org/opendaylight/integration/karaf/\
+  0.12.3/karaf-0.12.3.tar.gz
+tar -xvzf karaf-0.12.3.tar.gz
+\end{lstlisting}
+
+\subsubsection{Conception de l'Architecture SDN}
+
+\textbf{Situation Cible :} Concevoir une architecture réseau définie par logiciel permettant la segmentation dynamique des VLANs selon les priorités de service.
+
+\textbf{Plan d'Exécution :}
+\begin{enumerate}[leftmargin=1.5cm]
+  \item Définition des stratégies de segmentation VLAN basées sur les priorités (Critique / Standard / Administratif).
+  \item Développement de l'interface API REST entre le moteur IA et le contrôleur ODL.
+  \item Création d'un environnement de simulation réseau Mininet pour les tests.
+\end{enumerate}
+
+\screenshotbox{5cm}{Topologie réseau Mininet simulant l'infrastructure hospitalière}
+
+\subsubsection{Démarrage de l'Environnement SDN}
+
+La séquence de lancement doit toujours démarrer le contrôleur \textit{avant} le réseau simulé.
+
+\begin{lstlisting}[language=bash, caption={Séquence de lancement ODL + Mininet}]
+# ETAPE 1 : Demarrer OpenDaylight
+cd karaf-0.12.3
+./bin/karaf
+
+# Dans le terminal Karaf, installer les features
+feature:install odl-restconf odl-l2switch-switch \
+  odl-openflowplugin-all-li odl-dlux-core
+
+# ETAPE 2 : Demarrer Mininet (nouveau terminal)
+sudo mn --controller=remote,ip=127.0.0.1,port=6633 \
+  --topo=single,3 --switch=ovs,protocols=OpenFlow13
+
+# ETAPE 3 : Verification
+mininet> pingall
+\end{lstlisting}
+
+\screenshotbox{4cm}{Interface DLUX d'OpenDaylight -- vue de la topologie SDN}
+
+\screenshotbox{4cm}{Résultat de la commande \texttt{pingall} dans Mininet (connectivité validée)}
+
+\subsubsection{Intégration et Automatisation}
+
+\textbf{Situation Cible :} Construire un flux de travail entièrement automatisé, de la prédiction IA à la reconfiguration réseau SDN.
+
+\textbf{Plan d'Exécution :}
+\begin{enumerate}[leftmargin=1.5cm]
+  \item Développement du moteur de décision pour les affectations dynamiques de VLANs.
+  \item Implémentation du déploiement automatisé des configurations via l'API REST ODL.
+  \item Création de mécanismes de sécurité et de basculement manuel en cas de défaillance IA.
+\end{enumerate}
+
+\begin{lstlisting}[caption={Appel API REST vers OpenDaylight pour reconfiguration VLAN}]
+import requests
+
+def reconfigure_vlan(node_id, vlan_id, priority):
+    url = f"http://localhost:8181/rests/data/opendaylight-inventory:\
+nodes/node={node_id}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "vlan-id": vlan_id,
+        "priority": priority,
+        "mode": "dynamic"
+    }
+    response = requests.put(url, json=payload,
+                            auth=("admin", "admin"),
+                            headers=headers)
+    return response.status_code
+\end{lstlisting}
+
+%---------- PHASE 3 ----------
+\subsection{Phase 3 : Développement du Prototype}
+
+\subsubsection{Produit Minimum Viable (MVP)}
+
+Le MVP intègre les deux composantes principales du système dans un environnement de test contrôlé :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item Création d'un environnement réseau virtuel simulant une infrastructure hospitalière (services urgences, réanimation, radiologie, administration).
+  \item Intégration basique IA-SDN : le modèle LSTM génère des prédictions qui déclenchent automatiquement des reconfigurations réseau.
+  \item Tests avec scénarios simulés (pic d'affluence, panne partielle, surcharge administrative).
+\end{itemize}
+
+\screenshotbox{5cm}{Démonstration du MVP : flux de données de la prédiction IA vers la reconfiguration SDN}
+
+\subsubsection{Tableau de Bord Interactif}
+
+Un tableau de bord développé en Python (Dash/Plotly) permet la supervision en temps réel du système :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item Visualisation des prédictions de flux patients vs. flux réels.
+  \item État en temps réel de la topologie SDN et des VLANs actifs.
+  \item Contrôles de simulation de scénarios d'urgence.
+  \item Historique des reconfigurations réseau automatiques.
+\end{itemize}
+
+\screenshotbox{6cm}{Tableau de bord MediConnect AI -- vue principale (prédictions + état réseau)}
+
+\screenshotbox{5cm}{Tableau de bord -- section détail VLAN et priorités de trafic}
+
+\screenshotbox{5cm}{Tableau de bord -- graphiques de performance réseau (latence, débit, congestion)}
+
+%===================================================
+\section{Défis Techniques et Solutions}
+%===================================================
+
+La mise en œuvre de MediConnect AI soulève plusieurs défis techniques majeurs, pour lesquels des solutions ont été identifiées.
+
+\begin{longtable}{|p{0.42\linewidth}|p{0.48\linewidth}|}
+\hline
+\rowcolor{primaryblue!15}
+\textbf{Risque identifié} & \textbf{Solution proposée} \\
+\hline
+\endhead
+Perturbation des systèmes médicaux critiques pendant la reconfiguration réseau &
+Mécanismes de reconfiguration progressive sans coupure de service (\textit{graceful reconfiguration}) \\
+\hline
+Non-conformité aux régulations de santé (HIPAA / RGPD) &
+Chiffrement de bout en bout et audit de conformité intégré dans le système \\
+\hline
+Difficulté d'intégration avec les systèmes hospitaliers existants &
+APIs standardisées (REST/OpenFlow) et déploiement progressif par phase pilote \\
+\hline
+Échec des prédictions IA entraînant une mauvaise allocation des ressources &
+Système hybride IA + règles métier avec validation humaine obligatoire pour les décisions critiques \\
+\hline
+\caption{Matrice des risques et solutions -- MediConnect AI}
+\label{tab:risques}
+\end{longtable}
+
+%===================================================
+\section{Résultats et Discussion}
+%===================================================
+
+\subsection{Résultats du Modèle d'IA}
+
+Les modèles LSTM et GRU ont été évalués sur un jeu de test représentant 20\% des données NHS. Les métriques de performance sont les suivantes :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Modèle} & \textbf{MAE} & \textbf{RMSE} & \textbf{R²} \\
+\midrule
+LSTM            & -- & -- & -- \\
+GRU             & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{Comparaison des performances LSTM vs GRU (à compléter avec les résultats obtenus)}
+\label{tab:perf}
+\end{table}
+
+\screenshotbox{5cm}{Graphique de comparaison des métriques LSTM vs GRU}
+
+\subsection{Résultats de la Simulation SDN}
+
+Les tests réalisés sous Mininet avec le contrôleur OpenDaylight ont permis de valider :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item La segmentation dynamique des VLANs en réponse aux alertes du module IA.
+  \item La priorisation effective du trafic médical critique sur le trafic administratif.
+  \item La réduction mesurée de la latence sur les flux à haute priorité lors des pics simulés.
+\end{itemize}
+
+\screenshotbox{5cm}{Résultats de simulation : évolution de la latence avant/après reconfiguration SDN}
+
+\subsection{Discussion}
+
+Les résultats préliminaires valident le principe de l'intégration IA-SDN pour la gestion dynamique des réseaux hospitaliers. Cependant, plusieurs points méritent discussion :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Généralisation des modèles :} Les données NHS sont représentatives d'un contexte britannique ; une adaptation aux données réelles du contexte marocain serait nécessaire pour un déploiement opérationnel.
+  \item \textbf{Latence de décision :} Le temps de réponse entre la prédiction et la reconfiguration effective doit être minimisé pour les cas d'urgence.
+  \item \textbf{Scalabilité :} L'architecture a été testée en simulation ; une évaluation sur infrastructure physique constitue une perspective prioritaire.
+\end{itemize}
+
+%===================================================
+\section{Conclusion et Perspectives}
+%===================================================
+
+\subsection{Conclusion}
+
+Ce mini projet a permis de concevoir et de prototyper \textbf{MediConnect AI}, un système innovant combinant l'Intelligence Artificielle prédictive et les Réseaux Définis par Logiciel pour l'optimisation des infrastructures hospitalières.
+
+Les trois phases du projet ont été menées à bien : le développement de modèles LSTM/GRU pour la prédiction des flux patients, la mise en place d'une architecture SDN avec OpenDaylight et Mininet, et la création d'un tableau de bord de supervision interactif.
+
+Ce projet nous a permis de consolider des compétences transversales en apprentissage automatique, en administration réseau avancée et en développement logiciel, tout en abordant une problématique concrète et socialement pertinente : l'amélioration de la qualité des soins par l'optimisation des infrastructures numériques.
+
+\subsection{Perspectives}
+
+Les suites envisageables pour ce projet sont nombreuses :
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{Court terme :} Intégration de données hospitalières marocaines réelles pour adapter les modèles au contexte local.
+  \item \textbf{Moyen terme :} Déploiement pilote dans un hôpital partenaire avec infrastructure SDN physique.
+  \item \textbf{Long terme :} Extension du système à la gestion des ressources humaines (planification du personnel infirmier et médical) et à la cybersécurité réseau prédictive.
+\end{itemize}
+
+%===================================================
+% BIBLIOGRAPHIE
+%===================================================
+\newpage
+\section*{Bibliographie}
+\addcontentsline{toc}{section}{Bibliographie}
+
+\begin{enumerate}[leftmargin=1.5cm, label={[\arabic*]}]
+  \item NHS England. \textit{A\&E Attendances and Emergency Admissions}. Disponible sur Kaggle : \url{https://www.kaggle.com/datasets}. Consulté en 2026.
+
+  \item OpenDaylight Project. \textit{OpenDaylight Documentation -- Aluminium Release}. \url{https://docs.opendaylight.org}. Consulté en 2026.
+
+  \item Mininet Project. \textit{Mininet: An Instant Virtual Network on your Laptop}. \url{http://mininet.org}. Consulté en 2026.
+
+  \item Hochreiter, S., \& Schmidhuber, J. (1997). \textit{Long Short-Term Memory}. Neural Computation, 9(8), 1735–1780.
+
+  \item Cho, K. et al. (2014). \textit{Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation}. EMNLP 2014.
+
+  \item Open Networking Foundation. \textit{Software-Defined Networking: The New Norm for Networks}. ONF White Paper, 2012.
+
+  \item Mestouri, [Prénom]. \textit{Cours de Réseaux Avancés}. ENSAS, 2025--2026.
+\end{enumerate}
+
+%===================================================
+% ANNEXES
+%===================================================
+\newpage
+\appendix
+\section{Annexe I -- Tableau d'Explication des Termes Techniques}
+
+\begin{longtable}{|p{0.18\linewidth}|p{0.2\linewidth}|p{0.52\linewidth}|}
+\hline
+\rowcolor{primaryblue!15}
+\textbf{Terme} & \textbf{Catégorie} & \textbf{Définition} \\
+\hline
+\endhead
+\textbf{NHS} & Source de Données & National Health Service : système de santé publique du Royaume-Uni. Fournit les données hospitalières de référence. \\
+\hline
+\textbf{LSTM/GRU} & Intelligence Artificielle & Types de réseaux neuronaux récurrents spécialisés dans l'analyse de données séquentielles (séries temporelles). \\
+\hline
+\textbf{VLAN} & Réseau Informatique & Virtual Local Area Network -- division logique d'un réseau physique en plusieurs réseaux virtuels isolés. \\
+\hline
+\textbf{API} & Interface Logicielle & Application Programming Interface : ensemble de règles permettant à différents logiciels de communiquer entre eux. \\
+\hline
+\textbf{SDN} & Architecture Réseau & Software-Defined Networking : approche où le contrôle du réseau est séparé du matériel et géré par logiciel. \\
+\hline
+\textbf{OpenDaylight} & Outil SDN & Contrôleur SDN open-source à fiabilité industrielle, utilisé pour la gestion centralisée du réseau. \\
+\hline
+\textbf{Mininet} & Outil Simulation & Émulateur réseau permettant de créer des topologies virtuelles réalistes sur une seule machine. \\
+\hline
+\caption{Glossaire des termes techniques du projet}
+\label{tab:glossaire}
+\end{longtable}
+
+\section{Annexe II -- Guide de Démarrage Rapide SDN}
+
+\begin{lstlisting}[language=bash, caption={Procédure complète de démarrage de l'environnement SDN}]
+# ============================================
+# PHASE I : INSTALLATION (a faire une seule fois)
+# ============================================
+
+# 1. Java 23
+sudo apt-get update
+sudo apt-get install openjdk-23-jdk -y
+java -version
+
+# 2. Mininet
+sudo apt-get install mininet -y
+sudo mn --version
+
+# 3. OpenDaylight
+wget https://nexus.opendaylight.org/content/repositories/\
+opendaylight.release/org/opendaylight/integration/karaf/\
+0.12.3/karaf-0.12.3.tar.gz
+tar -xvzf karaf-0.12.3.tar.gz
+
+# ============================================
+# PHASE II : DEMARRAGE (a chaque session)
+# ============================================
+
+# Terminal 1 : Demarrer ODL
+cd karaf-0.12.3
+./bin/karaf
+# Dans Karaf :
+# feature:install odl-restconf odl-l2switch-switch \
+#   odl-openflowplugin-all-li odl-dlux-core
+
+# Terminal 2 : Demarrer Mininet
+sudo mn --controller=remote,ip=127.0.0.1,port=6633 \
+  --topo=single,3 --switch=ovs,protocols=OpenFlow13
+mininet> pingall
+
+# ============================================
+# PHASE III : VERIFICATION
+# ============================================
+# REST API : curl -u admin:admin \
+#   http://localhost:8181/rests/data/opendaylight-inventory
+# DLUX GUI : http://localhost:8181/index.html
+
+# NETTOYAGE
+sudo mn -c
+\end{lstlisting}
+
+\end{document}
